@@ -3022,7 +3022,47 @@ ast_for_expr_stmt(struct compiling *c, const node *n)
                              LINENO(n), n->n_col_offset, c->c_arena);
         }
     }
-    else {
+	else if ((TYPE(CHILD(n, 1)) == increment_stmt) || (TYPE(CHILD(n, 1)) == decrement_stmt)) {
+		expr_ty first_expression, second_expression;
+		node *ch = CHILD(n, 0);
+		operator_ty operator;
+
+		switch (TYPE(CHILD(n, 1))) {
+		case increment_stmt:
+			operator = Add;
+			break;
+		case decrement_stmt:
+			operator = Subtract;
+			break;
+		}
+
+		first_expression = ast_for_testlist(c, ch);
+		if (!expr1) {
+			return NULL;
+		}
+		switch (first_expression->kind) {
+		case Name_kind:
+			if (forbidden_name(c, first_expression->v.Name.id, n, 0)) {
+				return NULL;
+			}
+			first_expression->v.Name.ctx = Store;
+			break;
+		default:
+			ast_error(c, ch, "illegal target for increment/decrement");
+			return NULL;
+		}
+
+		PyObject *pynum = parsenumber(c, "1");
+
+		if (0 > PyArena_AddPyObject(c->c_arena, pynum)) {
+			Py_DECREF(pynum);
+			return NULL;
+		}
+
+		second_expression = Num(pynum, LINENO(n), n->n_col_offset, c->c_arena);
+		return AugAssign(first_expression, operator, second_expression, LINENO(n), n->n_col_offset, c->c_arena);
+	}
+	else {
         int i;
         asdl_seq *targets;
         node *value;

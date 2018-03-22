@@ -148,3 +148,6 @@ encoding_decl: NAME
 
 yield_expr: 'yield' [yield_arg]
 yield_arg: 'from' test | testlist
+
+increment_stmt: '++'
+decrement_stmt: '--'
